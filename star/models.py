@@ -17,131 +17,166 @@ DEC_RE = re.compile('(\+|-)(\d{2})d(\d{2})m(\d{2}\.\d{1})s')
 
 class StarManager(models.Manager):
 
-    def fetch_data(self):
-        params = settings.DATA_SOURCE_PARAMS
-        params['table'] = DATA_SOURCE_TABLE_NAME
-        # print(params)
-        url = '%s?%s' % (settings.DATA_SOURCE_URL, urlparse.urlencode(params))
-        df = pd.read_csv(url)
-        # print(df.head())
-        for index, row in df.iterrows():
-            try:
-                self.get(
-                    name=row.star_name
-                )
-            except Star.DoesNotExist:
-                pass
-                star = Star(
-                    name=row.star_name,
-                    name_hip=row.hip_name if pd.notna(row.hip_name) else None,
-                    name_hd=row.hd_name if pd.notna(row.hd_name) else None,
-                    name_gj=row.gj_name if pd.notna(row.gj_name) else None,
-                    name_tm=row.tm_name if pd.notna(row.tm_name) else None,
-                    is_exocat=True if row.st_exocatflag == 1 else False,
-                    is_coronag=True if row.st_coronagflag == 1 else False,
-                    is_starshade=True if row.st_starshadeflag == 1 else False,
-                    is_wfirst=True if row.st_wfirstflag == 1 else False,
-                    is_lbti=True if row.st_lbtiflag == 1 else False,
-                    is_rv=True if row.st_rvflag == 1 else False,
-                    nb_planets=row.st_ppnum if pd.notna(row.st_ppnum) else 0,
-                    ra=row.rastr if pd.notna(row.rastr) else None,
-                    dec=row.decstr if pd.notna(row.decstr) else None,
-                    distance=row.st_dist if pd.notna(row.st_dist) else None,
-                    distance_err_max=row.st_disterr1 if pd.notna(row.st_disterr1) else None,
-                    distance_err_min=row.st_disterr2 if pd.notna(row.st_disterr2) else None,
-                    vmag=row.st_vmag if pd.notna(row.st_vmag) else None,
-                    vmag_err=row.st_vmagerr if pd.notna(row.st_vmagerr) else None,
-                    bmv=row.st_bmv if pd.notna(row.st_bmv) else None,
-                    bmv_err=row.st_bmverr if pd.notna(row.st_bmverr) else None,
-                    stellar_type=row.st_spttype if pd.notna(row.st_spttype) else None,
-                    luminosity_bolo=row.st_lbol if pd.notna(row.st_lbol) else None,
-                    luminosity_bolo_err=row.st_lbolerr if pd.notna(row.st_lbolerr) else None,
-                )
-                # print(star.__dict__)
-                star.save()
+    pass
+
+    # def fetch_data(self):
+    #     params = settings.DATA_SOURCE_PARAMS
+    #     params['table'] = DATA_SOURCE_TABLE_NAME
+    #     # print(params)
+    #     url = '%s?%s' % (settings.DATA_SOURCE_URL, urlparse.urlencode(params))
+    #     df = pd.read_csv(url)
+    #     # print(df.head())
+    #     for index, row in df.iterrows():
+    #         try:
+    #             self.get(
+    #                 name=row.star_name
+    #             )
+    #         except Star.DoesNotExist:
+    #             pass
+    #             star = Star(
+    #                 name=row.star_name,
+    #                 name_hip=row.hip_name if pd.notna(row.hip_name) else None,
+    #                 name_hd=row.hd_name if pd.notna(row.hd_name) else None,
+    #                 name_gj=row.gj_name if pd.notna(row.gj_name) else None,
+    #                 name_tm=row.tm_name if pd.notna(row.tm_name) else None,
+    #                 is_exocat=True if row.st_exocatflag == 1 else False,
+    #                 is_coronag=True if row.st_coronagflag == 1 else False,
+    #                 is_starshade=True if row.st_starshadeflag == 1 else False,
+    #                 is_wfirst=True if row.st_wfirstflag == 1 else False,
+    #                 is_lbti=True if row.st_lbtiflag == 1 else False,
+    #                 is_rv=True if row.st_rvflag == 1 else False,
+    #                 nb_planets=row.st_ppnum if pd.notna(row.st_ppnum) else 0,
+    #                 ra=row.rastr if pd.notna(row.rastr) else None,
+    #                 dec=row.decstr if pd.notna(row.decstr) else None,
+    #                 distance=row.st_dist if pd.notna(row.st_dist) else None,
+    #                 distance_err_max=row.st_disterr1 if pd.notna(row.st_disterr1) else None,
+    #                 distance_err_min=row.st_disterr2 if pd.notna(row.st_disterr2) else None,
+    #                 vmag=row.st_vmag if pd.notna(row.st_vmag) else None,
+    #                 vmag_err=row.st_vmagerr if pd.notna(row.st_vmagerr) else None,
+    #                 bmv=row.st_bmv if pd.notna(row.st_bmv) else None,
+    #                 bmv_err=row.st_bmverr if pd.notna(row.st_bmverr) else None,
+    #                 stellar_type=row.st_spttype if pd.notna(row.st_spttype) else None,
+    #                 luminosity_bolo=row.st_lbol if pd.notna(row.st_lbol) else None,
+    #                 luminosity_bolo_err=row.st_lbolerr if pd.notna(row.st_lbolerr) else None,
+    #             )
+    #             # print(star.__dict__)
+    #             star.save()
 
 
 class Star(models.Model):
     """
     Model for stars
-    native fields are taken "as is" from the data source but renamed
     """
+
+    OPTICAL_MAGNITUDE_BAND = (
+        (1, _('V (Johnson)')),
+        (2, _('Kepler-band')),
+    )
 
     uuid = models.UUIDField(_('UUID'), default=uuid.uuid4, db_index=True)
 
     # native fields
     name = models.CharField(_('Name'), max_length=120, blank=False, null=False, default=None,
-                                 help_text=_('[star_name] Stellar name most commonly used'))
-    name_hip = models.CharField(_('HIP Name'), max_length=120, blank=True, null=True,
-                                help_text=_('[hip_name] Name of the star as given by the Hipparcos Catalog'))
-    name_hd = models.CharField(_('HD Name'), max_length=120, blank=True, null=True,
-                               help_text=_('[hd_name] Name of the star as given by the Henry Draper Catalog'))
-    name_gj = models.CharField(_('GJ Name'), max_length=120, blank=True, null=True,
-                               help_text=_('[gj_name] Name of the star as given by the Gliese Jahreiss Catalog'))
-    name_tm = models.CharField(_('TM Name'), max_length=120, blank=True, null=True,
-                               help_text=_('[tm_name] 2MASS designation'))
-    is_exocat = models.BooleanField(_('ExoCat List'), max_length=120, blank=False, default=False,
-                                        help_text=_('[st_exocatflag] Flag indicating if a star is on the ExoCat '
-                                                    'Directing Imaging Mission star list'))
-    is_coronag = models.BooleanField(_('Exo-C Probe List'), max_length=120, blank=False, default=False,
-                                        help_text=_('[st_coronagflag] Flag indicating if a star is on the Exo-C '
-                                                    'Coronagraph Probe star list'))
-    is_starshade = models.BooleanField(_('Exo-S Probe List'), max_length=120, blank=False, default=False,
-                                        help_text=_('[st_starshadeflag] Flag indicating if a star is on the Exo-S '
-                                                    'Starshade Probe star list'))
-    is_wfirst = models.BooleanField(_('WFIRST List'), max_length=120, blank=False, default=False,
-                                        help_text=_('[st_wfirstflag] Flag indicating is a star is on the WFIRST '
-                                                    'coronagraph exoplanet list'))
-    is_lbti = models.BooleanField(_('LBTI List'), max_length=120, blank=False, default=False,
-                                        help_text=_('[st_lbtiflag] Flag indicating if a star is on the LBTI s'
-                                                    'urvey list'))
-    is_rv = models.BooleanField(_('Known RV Data'), max_length=120, blank=False, default=False,
-                                        help_text=_('[st_rvflag] Flag indicating if a star has RV data, either a '
-                                                    'detection or a non-detection'))
-    nb_planets = models.PositiveSmallIntegerField(_('Nb planets'), blank=False, null=False, default=0,
-                                                help_text=_('[st_ppnum] Number of planets'))
-    ra = models.CharField(_('Right ascension'), blank=True, null=True, max_length=48,
-                                                help_text=_('[rastr] Right Ascension in sexagesimal format.'))
-    dec = models.CharField(_('Declination'), blank=True, null=True, max_length=48,
-                                                help_text=_('[decstr] Declination in sexagesimal notation'))
-    distance = models.DecimalField(_('Distance'), max_digits=6, decimal_places=2, null=True, blank=True,
-                                   help_text=_('[st_dist] Distance to the planetary system in units of parsecs'))
-    distance_err_max = models.DecimalField(_('Distance maximum margin for error'), max_digits=6, decimal_places=2,
-                                           null=True, blank=True,
-                                           help_text=_('[st_disterr1] in parsecs'))
-    distance_err_min = models.DecimalField(_('Distance minimum margin for error'), max_digits=6, decimal_places=2,
-                                           null=True, blank=True,
-                                           help_text=_('[st_disterr2] in parsecs'))
-    vmag = models.DecimalField(_('V-Band'), max_digits=6, decimal_places=2,
-                               null=True, blank=True,
-                               help_text=_('[st_vmag] Brightness as measured using the V band in units of magnitudes'))
-    vmag_err = models.DecimalField(_('V-Band margin for error'), max_digits=6, decimal_places=2,
-                               null=True, blank=True,
-                               help_text=_('[st_vmagerr]'))
-    bmv = models.DecimalField(_('B-V'), max_digits=6, decimal_places=2,
-                               null=True, blank=True,
-                               help_text=_('[st_bmv] Color of the star as measured by the difference '
-                                           'between B and V bands'))
-    bmv_err = models.DecimalField(_('B-V margin for error'), max_digits=6, decimal_places=2,
-                              null=True, blank=True,
-                              help_text=_('[st_bmverr]'))
-    stellar_type = models.CharField(_('Stellar Spectral Type '), max_length=12, blank=True, null=True,
-                                 help_text=_('[st_spttype] SClassification of the star based on their spectral '
-                                             'characteristics following the Morgan-Keenan system'))
-    luminosity_bolo = models.DecimalField(_('Stellar Bolometric Luminosity'), max_digits=6, decimal_places=2,
-                              null=True, blank=True,
-                              help_text=_('[st_lbol] (log(solar)) Amount of energy emitted by a star per unit time, '
-                                          'measured in units of solar luminosities. The bolometric corrections are '
-                                          'derived from V-K or B-V colors'))
-    luminosity_bolo_err = models.DecimalField(_('Stellar Bolometric Luminosity margin for error'), max_digits=6,
-                                              decimal_places=2, null=True, blank=True, help_text=_('[st_lbolerr]'))
+                                 help_text=_('[pl_hostname] Stellar name most commonly used'))
 
+    # right ascension
+    ra_str = models.CharField(_('Right ascension'), blank=True, null=True, max_length=20,
+        help_text=_('[ra_str] Right Ascension in sexagesimal format.'))
+    ra_str_err = models.DecimalField(_('Right ascension error margin'), blank=True, null=True,
+        max_digits=20, decimal_places=10, help_text=_('[st_raerr]'))
+    ra = models.DecimalField(_('Right ascension'), max_digits=20, decimal_places=10,
+        null=True, blank=True, help_text=_('[ra] in decimal degrees'))
+
+    # declination
+    dec_str = models.CharField(_('Declination'), blank=True, null=True, max_length=20,
+        help_text=_('[dec_str] Declination in sexagesimal format.'))
+    dec_str_err = models.DecimalField(_('Declination error margin'), blank=True, null=True,
+        max_digits=20, decimal_places=10, help_text=_('[st_decerr]'))
+    dec = models.DecimalField(_('Declination'), max_digits=20, decimal_places=10,
+        null=True, blank=True, help_text=_('[dec] in decimal degrees'))
+
+    # distance
+    distance = models.DecimalField(_('Distance'), max_digits=20, decimal_places=10, null=True, blank=True,
+        help_text=_('[st_dist] Distance to the planetary system in units of parsecs'))
+    distance_err_up = models.DecimalField(_('Distance upper error margin'), max_digits=20, decimal_places=10,
+        null=True, blank=True, help_text=_('[st_disterr1] in parsecs'))
+    distance_err_low = models.DecimalField(_('Distance lower error margin'), max_digits=20, decimal_places=10,
+        null=True, blank=True, help_text=_('[st_disterr2] in parsecs'))
+    distance_limit = models.DecimalField(_('Distance limit'), max_digits=20, decimal_places=10, null=True, blank=True,
+        help_text=_('[st_distlim]'))
+    distance_nb_measures = models.PositiveSmallIntegerField(_('Distance number of measures'), blank=False,
+        null=False, default=0, help_text=_('[st_distn]'))
+
+    # optical magnitude
+    magnitude_optical = models.DecimalField(_('Optical magnitude (mag)'), max_digits=20, decimal_places=10, null=True, blank=True,
+        help_text=_('[st_optmag] Brightness of the host star as measured using the V (Johnson) or the Kepler-band '
+                    'in units of magnitudes'))
+    magnitude_optical_err = models.DecimalField(_('Optical magnitude error margin'), max_digits=20, decimal_places=10,
+        null=True, blank=True, help_text=_('[st_optmagerr]'))
+    magnitude_optical_limit = models.DecimalField(_('Optical magnitude limit'), max_digits=20, decimal_places=10,
+        null=True, blank=True, help_text=_('[st_optmaglim]'))
+    magnitude_optical_band = models.PositiveSmallIntegerField(_('Optical magnitude band'), choices=OPTICAL_MAGNITUDE_BAND,
+        blank=False, null=False, default=1, help_text=_('[st_optband]'))
+
+    # gaia magnitude
+    magnitude_gaia =  models.DecimalField(_('G-band (Gaia) (mag)'), max_digits=20, decimal_places=10, null=True, blank=True,
+        help_text=_('[gaia_gmag] Brightness of the host star as measuring using the Gaia band in units of magnitudes'))
+    magnitude_gaia_err = models.DecimalField(_('G-band (Gaia) error margin'), max_digits=20, decimal_places=10,
+        null=True, blank=True, help_text=_('[gaia_gmagerr]'))
+    magnitude_gaia_limit = models.DecimalField(_('G-band (Gaia) limit'), max_digits=20, decimal_places=10,
+        null=True, blank=True, help_text=_('[gaia_gmaglim]'))
+
+    # temperature
+    temperature = models.DecimalField(_('Effective temperature (K)'), max_digits=20, decimal_places=10,
+        null=True, blank=True, help_text=_('[st_teff] Temperature of the star as modeled by a black body emitting '
+                                           'the same total amount of electromagnetic radiations'))
+    temperature_err_up = models.DecimalField(_('Effective temperature upper error margin'), max_digits=20, decimal_places=10,
+        null=True, blank=True, help_text=_('[st_tefferr1] in parsecs'))
+    temperature_err_low = models.DecimalField(_('Effective temperature lower error margin'), max_digits=20, decimal_places=10,
+        null=True, blank=True, help_text=_('[st_tefferr2] in parsecs'))
+    temperature_limit = models.DecimalField(_('Effective temperature limit'), max_digits=20, decimal_places=10, null=True,
+        blank=True, help_text=_('[st_tefflim]'))
+    temperature_nb_measures = models.PositiveSmallIntegerField(_('Effective temperature number of measures'), blank=False,
+        null=False, default=0, help_text=_('[st_teffn]'))
+
+    # mass
+    mass = models.DecimalField(_('Mass (solar mass)'), max_digits=20, decimal_places=10,
+        null=True, blank=True, help_text=_('[st_mass] Amount of matter contained in the star, measured '
+                                           'in units of masses of the Sun'))
+    mass_err_up = models.DecimalField(_('Mass upper error margin'), max_digits=20, decimal_places=10,
+        null=True, blank=True, help_text=_('[st_masserr1] in parsecs'))
+    mass_err_low = models.DecimalField(_('Mass lower error margin'), max_digits=20, decimal_places=10,
+        null=True, blank=True, help_text=_('[st_masserr2] in parsecs'))
+    mass_limit = models.DecimalField(_('Mass limit'), max_digits=20, decimal_places=10, null=True, blank=True,
+        help_text=_('[st_masslim]'))
+    mass_nb_measures = models.PositiveSmallIntegerField(_('Mass number of measures'), blank=False,
+        null=False, default=0, help_text=_('[st_massn]'))
+
+    # radius
+    radius = models.DecimalField(_('Radius (solar radii)'), max_digits=20, decimal_places=10,
+         null=True, blank=True, help_text=_('[pl_radj] Amount of matter contained in the star, measured '
+                                           'in units of masses of the Sun'))
+    radius_err_up = models.DecimalField(_('Radius upper error margin'), max_digits=20, decimal_places=10,
+         null=True, blank=True, help_text=_('[pl_radjerr1] in parsecs'))
+    radius_err_low = models.DecimalField(_('Radius lower error margin'), max_digits=20, decimal_places=10,
+         null=True, blank=True, help_text=_('[pl_radjerr2] in parsecs'))
+    radius_limit = models.DecimalField(_('Radius limit'), max_digits=20, decimal_places=10, null=True, blank=True,
+         help_text=_('[pl_radjlim]'))
+    radius_nb_measures = models.PositiveSmallIntegerField(_('Radius number of measures'), blank=False,
+         null=False, default=0, help_text=_('[pl_radn]'))
 
     objects = StarManager()
 
 
     def __str__(self):
         return self.name
+
+    @property
+    def nb_planets(self):
+        from planet.models import Planet
+        return Planet.objects.filter(
+            star=self
+        ).count()
 
     @property
     def cartesian_coordinates(self):
@@ -180,4 +215,4 @@ class Star(models.Model):
         y = (distance * math.cos(b)) * math.sin(a)
         z = distance * math.sin(b)
 
-        return x,y,z
+        return x, y, z

@@ -4,6 +4,7 @@ pywin32==223
 channels-redis==2.2.1
 pandas
 matplotlib
+# https://github.com/chrisdev/django-pandas
 django-pandas
 PyAstronomy
 scipy
